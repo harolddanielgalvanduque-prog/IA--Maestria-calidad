@@ -1,0 +1,1309 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | Control de Captación de Donantes</title>
+
+<!-- Chart.js permite generar gráficos interactivos. Requiere internet. -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* =========================================================
+   1. VARIABLES VISUALES: COLORES Y ESTILOS DEL DASHBOARD
+   ========================================================= */
+:root {
+  --navy: #163354;
+  --blue: #3178f6;
+  --teal: #14a899;
+  --orange: #f0a23b;
+  --red: #d95364;
+  --purple: #8468d8;
+  --bg: #f3f6fb;
+  --white: #ffffff;
+  --text: #25364b;
+  --muted: #718096;
+  --border: #e2e9f2;
+  --shadow: 0 5px 22px rgba(22, 51, 84, .06);
+}
+
+/* El modelo de caja evita problemas de dimensiones. */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+}
+
+button, select { font: inherit; }
+button { cursor: pointer; }
+
+/* Contenedor principal centrado y adaptable. */
+.app {
+  max-width: 1600px;
+  margin: auto;
+  padding: 24px;
+}
+
+/* =========================================================
+   2. ENCABEZADO Y JERARQUÍA VISUAL
+   ========================================================= */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.logo {
+  width: 49px;
+  height: 49px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--navy);
+  color: white;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+h1 {
+  color: var(--navy);
+  font-size: 25px;
+  margin: 0 0 5px;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: white;
+  padding: 10px 13px;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.btn.primary {
+  color: white;
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.btn:hover { filter: brightness(.96); }
+
+/* =========================================================
+   3. TARJETAS Y AGRUPACIÓN SEGÚN GESTALT
+   La proximidad agrupa información relacionada.
+   La similitud mantiene un formato común entre indicadores.
+   ========================================================= */
+.panel {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+
+.section-title {
+  color: var(--navy);
+  font-size: 15px;
+  font-weight: 750;
+  margin: 0;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+   4. FILTROS INTERACTIVOS
+   ========================================================= */
+.filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+  margin-top: 17px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.field select {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--text);
+  background: white;
+}
+
+/* =========================================================
+   5. INDICADORES KPI
+   ========================================================= */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.kpi {
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .35px;
+}
+
+.kpi-value {
+  color: var(--navy);
+  font-size: 29px;
+  font-weight: 800;
+  margin: 13px 0 7px;
+  overflow-wrap: anywhere;
+}
+
+.kpi-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.kpi-line {
+  width: 35px;
+  height: 4px;
+  border-radius: 4px;
+  margin-bottom: 13px;
+  background: var(--blue);
+}
+
+/* =========================================================
+   6. NAVEGACIÓN POR PESTAÑAS O SLIDES
+   ========================================================= */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0 17px;
+}
+
+.tab {
+  padding: 10px 15px;
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 9px;
+  font-weight: 700;
+}
+
+.tab.active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: white;
+}
+
+/* Solo una vista principal permanece visible. */
+.slide { display: none; }
+.slide.active { display: block; }
+
+/* =========================================================
+   7. DISEÑO DE LOS GRÁFICOS
+   ========================================================= */
+.grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 17px;
+  margin-bottom: 17px;
+}
+
+.chart-box {
+  position: relative;
+  height: 320px;
+  margin-top: 18px;
+}
+
+.chart-box.tall { height: 390px; }
+
+.insight {
+  margin-top: 15px;
+  padding: 15px;
+  background: #effaf8;
+  border-left: 4px solid var(--teal);
+  border-radius: 7px;
+  line-height: 1.8;
+  font-size: 13px;
+}
+
+/* =========================================================
+   8. TABLAS: ALINEACIÓN Y LEGIBILIDAD
+   ========================================================= */
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 17px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+th {
+  background: #f4f7fb;
+  color: var(--muted);
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+th, td {
+  padding: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:hover { background: #f6f9ff; }
+
+.badge {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 20px;
+  background: #e5f7f1;
+  color: #117b62;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.badge.down {
+  background: #fff0f1;
+  color: #bd3c4e;
+}
+
+.badge.neutral {
+  background: #eef2f7;
+  color: #64748b;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 17px;
+}
+
+.info-number {
+  font-size: 23px;
+  font-weight: 800;
+  color: var(--navy);
+  margin: 12px 0 7px;
+}
+
+.footer {
+  margin: 22px 0 8px;
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+
+.empty {
+  padding: 22px;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* =========================================================
+   9. ADAPTACIÓN A PANTALLAS PEQUEÑAS
+   ========================================================= */
+@media(max-width: 950px) {
+  .grid { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media(max-width: 600px) {
+  .app { padding: 12px; }
+  h1 { font-size: 20px; }
+  .filters, .info-grid { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpi-value { font-size: 23px; }
+  .panel { padding: 14px; }
+  .chart-box { height: 270px; }
+}
+
+@media print {
+  .actions, .filters, .tabs, .btn { display: none !important; }
+  body { background: white; }
+  .panel { box-shadow: none; break-inside: avoid; }
+  .slide { display: block !important; margin-bottom: 20px; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- =====================================================
+       ENCABEZADO DEL TABLERO
+       ===================================================== -->
+  <header class="header">
+    <div class="brand">
+      <div class="logo">CD</div>
+      <div>
+        <h1>Control de Captación de Donantes</h1>
+        <div class="subtitle">
+          Seguimiento operativo · Enero a septiembre · Cuatro puntos fijos
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" onclick="resetFilters()">Restablecer</button>
+      <button class="btn" onclick="downloadCSV(false)">Descargar filtrado</button>
+      <button class="btn" onclick="downloadCSV(true)">Descargar base completa</button>
+      <button class="btn primary" onclick="window.print()">Imprimir informe</button>
+    </div>
+  </header>
+
+  <!-- =====================================================
+       PANEL DE FILTROS
+       ===================================================== -->
+  <section class="panel">
+    <div class="section-head">
+      <h2 class="section-title">Filtros y segmentación</h2>
+      <span class="muted" id="recordCount">Registros disponibles</span>
+    </div>
+
+    <div class="filters">
+      <div class="field">
+        <label for="pointFilter">Punto de captación</label>
+        <select id="pointFilter">
+          <option value="ALL">Todos los puntos</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="monthFilter">Mes de seguimiento</label>
+        <select id="monthFilter">
+          <option value="ALL">Todos los meses</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="viewFilter">Vista de análisis</label>
+        <select id="viewFilter">
+          <option value="overview">Resumen ejecutivo</option>
+          <option value="points">Comparación por punto</option>
+          <option value="monthly">Tendencia mensual</option>
+          <option value="evidence">Base de datos</option>
+          <option value="process">Contexto del proceso</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       TARJETAS KPI
+       ===================================================== -->
+  <section class="kpis">
+    <article class="panel kpi">
+      <div class="kpi-line"></div>
+      <div class="kpi-label">CAPTACIÓN ACUMULADA</div>
+      <div class="kpi-value" id="kpiTotal">—</div>
+      <div class="kpi-note">Total de captaciones de la selección actual</div>
+    </article>
+
+    <article class="panel kpi">
+      <div class="kpi-line" style="background:var(--teal)"></div>
+      <div class="kpi-label">PROMEDIO MENSUAL</div>
+      <div class="kpi-value" id="kpiAverage">—</div>
+      <div class="kpi-note">Total dividido entre meses con datos</div>
+    </article>
+
+    <article class="panel kpi">
+      <div class="kpi-line" style="background:var(--orange)"></div>
+      <div class="kpi-label">PUNTO CON MAYOR CAPTACIÓN</div>
+      <div class="kpi-value" id="kpiLeader" style="font-size:20px">—</div>
+      <div class="kpi-note" id="leaderNote">Según volumen acumulado</div>
+    </article>
+
+    <article class="panel kpi">
+      <div class="kpi-line" style="background:var(--purple)"></div>
+      <div class="kpi-label">VARIACIÓN MENSUAL</div>
+      <div class="kpi-value" id="kpiVariation">—</div>
+      <div class="kpi-note" id="variationNote">Último mes frente al anterior</div>
+    </article>
+  </section>
+
+  <!-- =====================================================
+       PESTAÑAS: CADA UNA FUNCIONA COMO UNA DIAPOSITIVA
+       ===================================================== -->
+  <nav class="tabs">
+    <button class="tab active" data-slide="overview">Resumen ejecutivo</button>
+    <button class="tab" data-slide="points">Puntos de captación</button>
+    <button class="tab" data-slide="monthly">Tendencia mensual</button>
+    <button class="tab" data-slide="evidence">Base de datos</button>
+    <button class="tab" data-slide="process">Proceso y reprocesos</button>
+  </nav>
+
+  <!-- =====================================================
+       VISTA 1: RESUMEN EJECUTIVO
+       ===================================================== -->
+  <section class="slide active" id="overview">
+    <div class="grid">
+      <article class="panel">
+        <div class="section-head">
+          <h2 class="section-title">Evolución mensual</h2>
+          <span class="muted">Gráfico de líneas</span>
+        </div>
+        <div class="muted">Identificación de tendencias y patrones.</div>
+        <div class="chart-box">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="section-head">
+          <h2 class="section-title">Comparación de puntos</h2>
+          <span class="muted">Gráfico de barras</span>
+        </div>
+        <div class="muted">Clasificación por volumen acumulado.</div>
+        <div class="chart-box">
+          <canvas id="barChart"></canvas>
+        </div>
+      </article>
+    </div>
+
+    <article class="panel">
+      <div class="section-head">
+        <h2 class="section-title">Interpretación de resultados</h2>
+        <span class="muted">Se actualiza con los filtros</span>
+      </div>
+      <div class="insight" id="insight">Calculando indicadores...</div>
+    </article>
+  </section>
+
+  <!-- =====================================================
+       VISTA 2: ANÁLISIS POR PUNTO
+       ===================================================== -->
+  <section class="slide" id="points">
+    <article class="panel">
+      <div class="section-head">
+        <h2 class="section-title">Ranking de captación por punto</h2>
+        <span class="muted">Mayor a menor</span>
+      </div>
+      <div class="chart-box tall">
+        <canvas id="rankingChart"></canvas>
+      </div>
+      <div class="table-wrap" id="rankingTable"></div>
+    </article>
+  </section>
+
+  <!-- =====================================================
+       VISTA 3: TENDENCIA MENSUAL
+       ===================================================== -->
+  <section class="slide" id="monthly">
+    <article class="panel">
+      <div class="section-head">
+        <h2 class="section-title">Tendencia y variación mensual</h2>
+        <span class="muted">Datos registrados de enero a septiembre</span>
+      </div>
+      <div class="chart-box tall">
+        <canvas id="monthlyChart"></canvas>
+      </div>
+      <div class="table-wrap" id="monthlyTable"></div>
+    </article>
+  </section>
+
+  <!-- =====================================================
+       VISTA 4: BASE DE DATOS
+       ===================================================== -->
+  <section class="slide" id="evidence">
+    <article class="panel">
+      <div class="section-head">
+        <h2 class="section-title">Registro detallado de captación</h2>
+        <button class="btn primary" onclick="downloadCSV(false)">
+          Exportar registros filtrados
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Punto</th>
+              <th>Mes</th>
+              <th>Captación</th>
+              <th>Variación absoluta</th>
+              <th>Variación porcentual</th>
+              <th>Estado del cambio</th>
+            </tr>
+          </thead>
+          <tbody id="dataTable"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <!-- =====================================================
+       VISTA 5: CONTEXTO DEL PROCESO Y REPROCESOS
+       ===================================================== -->
+  <section class="slide" id="process">
+    <article class="panel">
+      <h2 class="section-title">Contexto operativo del proceso</h2>
+      <p class="muted">
+        Información descrita en el documento de identificación del proceso clave.
+      </p>
+
+      <div class="info-grid">
+        <div class="panel">
+          <div class="kpi-label">FRECUENCIA MENSUAL DE REPROCESOS</div>
+          <div class="info-number">4</div>
+          <div class="muted">Reprocesos/mes · estimación documentada</div>
+        </div>
+        <div class="panel">
+          <div class="kpi-label">TIEMPO POR REPROCESO</div>
+          <div class="info-number">2 horas</div>
+          <div class="muted">Tiempo promedio estimado</div>
+        </div>
+        <div class="panel">
+          <div class="kpi-label">COSTO POR REPROCESO</div>
+          <div class="info-number">$35.000</div>
+          <div class="muted">Pesos colombianos (COP)</div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="panel">
+          <div class="kpi-label">TIEMPO MENSUAL ESTIMADO</div>
+          <div class="info-number">8 horas</div>
+          <div class="muted">4 reprocesos × 2 horas</div>
+        </div>
+        <div class="panel">
+          <div class="kpi-label">COSTO MENSUAL ESTIMADO</div>
+          <div class="info-number">$140.000</div>
+          <div class="muted">4 reprocesos × $35.000 COP</div>
+        </div>
+        <div class="panel">
+          <div class="kpi-label">EVENTO NO DESEADO</div>
+          <div class="info-number" style="font-size:18px">Incumplimiento</div>
+          <div class="muted">Incumplimiento de las metas de captación</div>
+        </div>
+      </div>
+
+      <div class="insight">
+        <strong>Factores identificados en el documento:</strong>
+        reducción de la jornada laboral a 42 horas semanales y recurrencia de
+        permisos del personal operativo. Se señala que pueden afectar la captación
+        y el cumplimiento de los pedidos de componentes sanguíneos.
+        <br><br>
+        <strong>Recomendación de seguimiento:</strong>
+        contrastar mensualmente la captación real con la meta definida para cada punto,
+        documentar las causas de desviación y registrar acciones correctivas.
+        Las metas numéricas no se incorporan porque no están especificadas en la tabla
+        de evidencia del documento.
+      </div>
+    </article>
+  </section>
+
+  <footer class="footer">
+    <strong>Fuente de captación:</strong> documento «Identifica el proceso clave maestria».
+    <br>
+    <strong>Periodo disponible:</strong> enero-septiembre. No se estiman valores para
+    octubre, noviembre o diciembre.
+    <br>
+    <strong>Nota metodológica:</strong> la variación mensual se calcula frente al mes
+    inmediatamente anterior. Cuando el valor anterior es cero, el porcentaje se
+    presenta como no disponible. Los datos de reproceso corresponden a estimaciones
+    documentadas y no se mezclan con las captaciones.
+  </footer>
+
+</div>
+
+<script>
+/* =========================================================
+   10. BASE DE DATOS
+   Valores tomados de la tabla de evidencia del documento.
+   Cada arreglo sigue el orden enero, febrero, ..., septiembre.
+   ========================================================= */
+
+const MONTHS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo",
+  "Junio", "Julio", "Agosto", "Septiembre"
+];
+
+const DATA = {
+  "Punto Adelita": [143, 146, 68, 66, 58, 21, 95, 81, 52],
+  "Punto Norte": [463, 281, 245, 185, 241, 251, 330, 249, 264],
+  "Punto Reina Catalina": [130, 157, 152, 221, 86, 65, 121, 76, 72],
+  "Punto Bonadona": [86, 119, 139, 204, 113, 102, 205, 105, 138]
+};
+
+/* Paleta consistente para reconocer cada punto entre gráficos. */
+const COLORS = {
+  "Punto Adelita": "#3178f6",
+  "Punto Norte": "#14a899",
+  "Punto Reina Catalina": "#8468d8",
+  "Punto Bonadona": "#f0a23b"
+};
+
+/* Referencias a las instancias Chart.js para actualizarlas. */
+const charts = {};
+
+/* Funciones de formato numérico para el idioma español. */
+const fmt = n => Number(n).toLocaleString("es-CO", {
+  maximumFractionDigits: 2
+});
+
+const pct = n => (n * 100).toLocaleString("es-CO", {
+  maximumFractionDigits: 1
+}) + "%";
+
+/* =========================================================
+   11. CONVERSIÓN DE LA BASE A REGISTROS
+   Esta estructura facilita filtrar, agregar y exportar datos.
+   ========================================================= */
+
+const ALL_RECORDS = [];
+
+Object.entries(DATA).forEach(([point, values]) => {
+  values.forEach((value, index) => {
+    ALL_RECORDS.push({
+      point: point,
+      month: MONTHS[index],
+      monthIndex: index,
+      value: value
+    });
+  });
+});
+
+/* =========================================================
+   12. INICIALIZACIÓN DE LOS FILTROS
+   ========================================================= */
+
+const pointFilter = document.getElementById("pointFilter");
+const monthFilter = document.getElementById("monthFilter");
+const viewFilter = document.getElementById("viewFilter");
+
+/* Carga los puntos registrados en el archivo. */
+Object.keys(DATA).forEach(point => {
+  const option = document.createElement("option");
+  option.value = point;
+  option.textContent = point;
+  pointFilter.appendChild(option);
+});
+
+/* Carga los nueve meses disponibles. */
+MONTHS.forEach(month => {
+  const option = document.createElement("option");
+  option.value = month;
+  option.textContent = month;
+  monthFilter.appendChild(option);
+});
+
+/* Todos los filtros reaccionan a cambios del usuario. */
+pointFilter.addEventListener("change", render);
+monthFilter.addEventListener("change", render);
+
+/* La selección de vista abre la pestaña correspondiente. */
+viewFilter.addEventListener("change", () => {
+  showSlide(viewFilter.value);
+  render();
+});
+
+/* =========================================================
+   13. FUNCIONES DE FILTRADO
+   ========================================================= */
+
+function filteredRecords() {
+  const point = pointFilter.value;
+  const month = monthFilter.value;
+
+  return ALL_RECORDS.filter(row =>
+    (point === "ALL" || row.point === point) &&
+    (month === "ALL" || row.month === month)
+  );
+}
+
+/* Suma los valores de un conjunto de registros. */
+function sum(rows) {
+  return rows.reduce((total, row) => total + row.value, 0);
+}
+
+/* Agrupa los registros por punto o por mes. */
+function aggregate(rows, key) {
+  const result = {};
+
+  rows.forEach(row => {
+    result[row[key]] = (result[row[key]] || 0) + row.value;
+  });
+
+  return result;
+}
+
+/* Devuelve las sumas de los meses, conservando el orden temporal. */
+function monthlyTotals(rows) {
+  const totals = {};
+
+  MONTHS.forEach(month => {
+    const matching = rows.filter(row => row.month === month);
+    if (matching.length) {
+      totals[month] = sum(matching);
+    }
+  });
+
+  return totals;
+}
+
+/* =========================================================
+   14. CÁLCULO DE LOS KPI
+   ========================================================= */
+
+function updateKPIs(rows) {
+  const total = sum(rows);
+  const months = [...new Set(rows.map(row => row.month))];
+  const average = months.length ? total / months.length : 0;
+
+  /* Determina el punto con mayor volumen dentro de los filtros. */
+  const pointTotals = aggregate(rows, "point");
+  const ranking = Object.entries(pointTotals)
+    .sort((a, b) => b[1] - a[1]);
+
+  /* Calcula la variación entre los dos últimos meses disponibles. */
+  const totals = monthlyTotals(rows);
+  const available = MONTHS.filter(month =>
+    Object.prototype.hasOwnProperty.call(totals, month)
+  );
+
+  let variation = null;
+  let variationNote = "No hay comparación disponible";
+
+  if (available.length >= 2) {
+    const previousMonth = available[available.length - 2];
+    const currentMonth = available[available.length - 1];
+    const previous = totals[previousMonth];
+    const current = totals[currentMonth];
+
+    if (previous !== 0) {
+      variation = (current - previous) / previous;
+      variationNote = `${previousMonth} frente a ${currentMonth}`;
+    } else {
+      variationNote = "No calculable: mes anterior en cero";
+    }
+  }
+
+  document.getElementById("kpiTotal").textContent = fmt(total);
+  document.getElementById("kpiAverage").textContent = fmt(average);
+
+  document.getElementById("kpiLeader").textContent =
+    ranking.length ? ranking[0][0] : "Sin datos";
+
+  document.getElementById("leaderNote").textContent =
+    ranking.length
+      ? `${fmt(ranking[0][1])} captaciones registradas`
+      : "Sin registros para esta selección";
+
+  const variationElement = document.getElementById("kpiVariation");
+
+  variationElement.textContent = variation === null
+    ? "N/D"
+    : `${variation > 0 ? "+" : ""}${pct(variation)}`;
+
+  document.getElementById("variationNote").textContent = variationNote;
+
+  document.getElementById("recordCount").textContent =
+    `${rows.length} registros · ${months.length} meses disponibles`;
+
+  /* Construye una lectura ejecutiva a partir de los datos filtrados. */
+  const pointLeader = ranking.length
+    ? `${ranking[0][0]} lidera con ${fmt(ranking[0][1])} captaciones.`
+    : "No existen registros para la selección.";
+
+  const monthlyChange = variation === null
+    ? "No se puede calcular una variación porcentual con los meses disponibles."
+    : `La variación del último mes frente al anterior es ${
+        variation > 0 ? "positiva" : variation < 0 ? "negativa" : "nula"
+      } (${pct(variation)}).`;
+
+  document.getElementById("insight").textContent =
+    `En la selección actual se registran ${fmt(total)} captaciones, ` +
+    `con un promedio de ${fmt(average)} por mes con información. ` +
+    `${pointLeader} ${monthlyChange}`;
+}
+
+/* =========================================================
+   15. CONFIGURACIÓN COMÚN DE LOS GRÁFICOS
+   ========================================================= */
+
+function commonOptions() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: "index",
+      intersect: false
+    },
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: {
+          usePointStyle: true,
+          boxWidth: 8
+        }
+      },
+      tooltip: {
+        enabled: true
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false }
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: "#edf1f6" },
+        ticks: {
+          callback: value => fmt(value)
+        }
+      }
+    }
+  };
+}
+
+/* Destruye un gráfico antes de crear su nueva versión. */
+function destroyChart(id) {
+  if (charts[id]) {
+    charts[id].destroy();
+    delete charts[id];
+  }
+}
+
+/* =========================================================
+   16. GRÁFICO DE LÍNEAS: TENDENCIAS Y PATRONES
+   ========================================================= */
+
+function drawLine(rows, chartId) {
+  destroyChart(chartId);
+
+  const selectedPoint = pointFilter.value;
+  const selectedMonth = monthFilter.value;
+
+  /* El gráfico muestra todos los meses o el mes seleccionado. */
+  const labels = selectedMonth === "ALL"
+    ? MONTHS
+    : [selectedMonth];
+
+  /* Si se selecciona un punto, se muestra su propia tendencia. */
+  const points = selectedPoint === "ALL"
+    ? Object.keys(DATA)
+    : [selectedPoint];
+
+  const datasets = points.map(point => ({
+    label: point,
+    data: labels.map(month => {
+      const matching = rows.filter(row =>
+        row.point === point && row.month === month
+      );
+
+      return matching.length ? sum(matching) : null;
+    }),
+    borderColor: COLORS[point],
+    backgroundColor: COLORS[point],
+    pointRadius: 4,
+    pointHoverRadius: 7,
+    borderWidth: 2.5,
+    tension: 0.25,
+    spanGaps: false
+  }));
+
+  charts[chartId] = new Chart(document.getElementById(chartId), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: datasets
+    },
+    options: commonOptions()
+  });
+}
+
+/* =========================================================
+   17. GRÁFICO DE BARRAS: COMPARACIÓN Y CLASIFICACIÓN
+   ========================================================= */
+
+function drawBar(rows, chartId, horizontal = true) {
+  destroyChart(chartId);
+
+  const totals = aggregate(rows, "point");
+
+  /* Ordena los puntos de mayor a menor captación. */
+  const ranking = Object.entries(totals)
+    .sort((a, b) => b[1] - a[1]);
+
+  charts[chartId] = new Chart(document.getElementById(chartId), {
+    type: "bar",
+    data: {
+      labels: ranking.map(item => item[0]),
+      datasets: [{
+        label: "Captaciones",
+        data: ranking.map(item => item[1]),
+        backgroundColor: ranking.map(item => COLORS[item[0]]),
+        borderRadius: 5,
+        maxBarThickness: 38
+      }]
+    },
+    options: {
+      ...commonOptions(),
+      indexAxis: horizontal ? "y" : "x",
+      plugins: {
+        ...commonOptions().plugins,
+        legend: { display: false }
+      }
+    }
+  });
+}
+
+/* =========================================================
+   18. TABLAS DE RANKING Y EVIDENCIA
+   ========================================================= */
+
+/* Evita que el texto de una celda se interprete como HTML. */
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
+/* Genera la tabla ordenada de los puntos de captación. */
+function buildRankingTable(rows) {
+  const totals = aggregate(rows, "point");
+  const ranking = Object.entries(totals)
+    .sort((a, b) => b[1] - a[1]);
+
+  const total = sum(rows);
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Posición</th>
+          <th>Punto</th>
+          <th>Captaciones</th>
+          <th>Participación</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  ranking.forEach(([point, value], index) => {
+    html += `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHTML(point)}</td>
+        <td>${fmt(value)}</td>
+        <td>${total ? pct(value / total) : "N/D"}</td>
+      </tr>`;
+  });
+
+  html += "</tbody></table>";
+
+  document.getElementById("rankingTable").innerHTML = html;
+}
+
+/* Construye una tabla mensual con las sumas y las variaciones. */
+function buildMonthlyTable(rows) {
+  const totals = monthlyTotals(rows);
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Mes</th>
+          <th>Captaciones</th>
+          <th>Variación absoluta</th>
+          <th>Variación porcentual</th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  MONTHS.forEach((month, index) => {
+    if (totals[month] === undefined) return;
+
+    const previousMonth = index > 0 ? MONTHS[index - 1] : null;
+    const previous = previousMonth ? totals[previousMonth] : undefined;
+
+    let difference = null;
+    let percentage = null;
+
+    if (previous !== undefined) {
+      difference = totals[month] - previous;
+      if (previous !== 0) {
+        percentage = difference / previous;
+      }
+    }
+
+    html += `
+      <tr>
+        <td>${month}</td>
+        <td>${fmt(totals[month])}</td>
+        <td>${difference === null
+          ? "N/D"
+          : `${difference > 0 ? "+" : ""}${fmt(difference)}`}</td>
+        <td>${percentage === null
+          ? "N/D"
+          : `${percentage > 0 ? "+" : ""}${pct(percentage)}`}</td>
+      </tr>`;
+  });
+
+  html += "</tbody></table>";
+
+  document.getElementById("monthlyTable").innerHTML = html;
+}
+
+/* Construye el detalle por punto y mes. */
+function buildDataTable(rows) {
+  const body = document.getElementById("dataTable");
+
+  const ordered = [...rows].sort((a, b) =>
+    a.point.localeCompare(b.point) || a.monthIndex - b.monthIndex
+  );
+
+  body.innerHTML = ordered.map(row => {
+    const previous = row.monthIndex > 0
+      ? DATA[row.point][row.monthIndex - 1]
+      : null;
+
+    let difference = null;
+    let percentage = null;
+
+    if (previous !== null && previous !== undefined) {
+      difference = row.value - previous;
+
+      if (previous !== 0) {
+        percentage = difference / previous;
+      }
+    }
+
+    const status = difference === null
+      ? "Sin comparación"
+      : difference > 0
+        ? "Aumento"
+        : difference < 0
+          ? "Disminución"
+          : "Sin variación";
+
+    const badgeClass = difference === null
+      ? "neutral"
+      : difference < 0
+        ? "down"
+        : "";
+
+    return `
+      <tr>
+        <td>${escapeHTML(row.point)}</td>
+        <td>${row.month}</td>
+        <td>${fmt(row.value)}</td>
+        <td>${difference === null
+          ? "N/D"
+          : `${difference > 0 ? "+" : ""}${fmt(difference)}`}</td>
+        <td>${percentage === null
+          ? "N/D"
+          : `${percentage > 0 ? "+" : ""}${pct(percentage)}`}</td>
+        <td><span class="badge ${badgeClass}">${status}</span></td>
+      </tr>`;
+  }).join("");
+
+  if (!ordered.length) {
+    body.innerHTML =
+      '<tr><td colspan="6" class="empty">No hay datos disponibles.</td></tr>';
+  }
+}
+
+/* =========================================================
+   19. NAVEGACIÓN ENTRE VISTAS
+   ========================================================= */
+
+function showSlide(id) {
+  /* Activa la vista elegida y oculta las demás. */
+  document.querySelectorAll(".slide").forEach(slide => {
+    slide.classList.toggle("active", slide.id === id);
+  });
+
+  /* Resalta la pestaña activa para orientar al usuario. */
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.slide === id);
+  });
+
+  /* Ajusta las dimensiones de gráficos que estaban ocultos. */
+  setTimeout(() => {
+    Object.values(charts).forEach(chart => chart.resize());
+  }, 40);
+}
+
+/* Los botones de las pestañas también permiten navegar. */
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    viewFilter.value = tab.dataset.slide;
+    showSlide(tab.dataset.slide);
+    render();
+  });
+});
+
+/* =========================================================
+   20. EXPORTACIÓN CSV
+   Permite descargar los datos filtrados o la base completa.
+   ========================================================= */
+
+function downloadCSV(fullDatabase) {
+  /* Decide si utiliza la selección actual o todos los registros. */
+  const rows = fullDatabase ? ALL_RECORDS : filteredRecords();
+
+  const header = [
+    "Punto",
+    "Mes",
+    "Captacion",
+    "Variacion_absoluta",
+    "Variacion_porcentual"
+  ];
+
+  const output = [header];
+
+  rows.forEach(row => {
+    const previous = row.monthIndex > 0
+      ? DATA[row.point][row.monthIndex - 1]
+      : null;
+
+    const difference = previous === null
+      ? null
+      : row.value - previous;
+
+    const percentage = previous === null || previous === 0
+      ? null
+      : difference / previous;
+
+    output.push([
+      row.point,
+      row.month,
+      row.value,
+      difference === null ? "" : difference,
+      percentage === null ? "" : percentage
+    ]);
+  });
+
+  /* El punto y coma suele facilitar la apertura en Excel en Colombia. */
+  const csv = "\uFEFF" + output.map(row =>
+    row.map(value => {
+      const text = String(value);
+
+      /* Protege las celdas que contienen separadores o comillas. */
+      return /[;"\n\r]/.test(text)
+        ? '"' + text.replace(/"/g, '""') + '"'
+        : text;
+    }).join(";")
+  ).join("\r\n");
+
+  /* Genera el archivo descargable directamente en el navegador. */
+  const blob = new Blob([csv], {
+    type: "text/csv;charset=utf-8;"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fullDatabase
+    ? "base_completa_captacion.csv"
+    : "captacion_filtrada.csv";
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  /* Libera la URL temporal utilizada para generar el archivo. */
+  URL.revokeObjectURL(url);
+}
+
+/* =========================================================
+   21. RESTABLECER FILTROS
+   ========================================================= */
+
+function resetFilters() {
+  pointFilter.value = "ALL";
+  monthFilter.value = "ALL";
+  viewFilter.value = "overview";
+
+  showSlide("overview");
+  render();
+}
+
+/* =========================================================
+   22. ACTUALIZACIÓN CENTRAL
+   Cada cambio recalcula los KPI, gráficos y tablas.
+   ========================================================= */
+
+function render() {
+  const rows = filteredRecords();
+
+  /* Actualiza las tarjetas superiores. */
+  updateKPIs(rows);
+
+  /* Actualiza los gráficos de tendencias y comparación. */
+  drawLine(rows, "lineChart");
+  drawBar(rows, "barChart");
+  drawBar(rows, "rankingChart");
+
+  /* El gráfico mensual muestra la serie de puntos seleccionados. */
+  drawLine(rows, "monthlyChart");
+
+  /* Actualiza las tablas con la misma selección de filtros. */
+  buildRankingTable(rows);
+  buildMonthlyTable(rows);
+  buildDataTable(rows);
+}
+
+/* Inicializa el tablero al abrir el archivo HTML. */
+render();
+</script>
+</body>
+</html>
